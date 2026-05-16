@@ -61,7 +61,9 @@ export function registerAuthTools(api: OpenClawPluginApi): void {
     parameters: Type.Object({}),
     async execute() {
       try {
-        const loginResult = await runLogin();
+        const loginResult = await runLogin({
+          headless: true,
+        });
         if (!loginResult.success) {
           return {
             content: [{ type: "text", text: JSON.stringify({ error: loginResult.error, message: loginResult.message }) }],

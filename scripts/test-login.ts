@@ -24,7 +24,7 @@ if (!creds) {
 console.log(`Testing login for: ${creds.email}`);
 console.log("Running in non-headless mode so you can watch the browser...\n");
 
-const result = await runLogin({ headless: true });
+const result = await runLogin({ headless: false });
 
 if (result.success) {
   console.log("\n✓ Login succeeded");

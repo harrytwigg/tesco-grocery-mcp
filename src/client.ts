@@ -28,6 +28,7 @@ const API_KEY = "TvOSZJHlEk0pjniDGQFAc9Q59WGAR4dA";
 
 let bearerToken: string | undefined;
 let customerUuid: string | undefined;
+let storedEmail: string | undefined;
 let cachedOrderId: string | undefined;
 
 // ─── .env Management ─────────────────────────────────────────────────────────
@@ -59,6 +60,7 @@ export function loadCredentialsFromEnv(): void {
   const env = parseEnv(readFileSync(ENV_PATH, "utf8"));
   bearerToken = env.TESCO_BEARER_TOKEN || undefined;
   customerUuid = env.TESCO_CUSTOMER_UUID || undefined;
+  storedEmail = env.TESCO_EMAIL || undefined;
 
   if (bearerToken) {
     const expiry = checkTokenExpiry();
@@ -75,9 +77,10 @@ export function loadCredentialsFromEnv(): void {
 /**
  * Update credentials in memory and persist to .env.
  */
-export function setCredentials(token: string, uuid: string): void {
+export function setCredentials(token: string, uuid: string, email?: string): void {
   bearerToken = token;
   customerUuid = uuid;
+  if (email) storedEmail = email;
 
   // Read existing .env, update or add the relevant keys
   let env: Record<string, string> = {};
@@ -86,6 +89,7 @@ export function setCredentials(token: string, uuid: string): void {
   }
   env.TESCO_BEARER_TOKEN = token;
   env.TESCO_CUSTOMER_UUID = uuid;
+  if (email) env.TESCO_EMAIL = email;
 
   mkdirSync(dirname(ENV_PATH), { recursive: true });
 
@@ -96,9 +100,40 @@ export function setCredentials(token: string, uuid: string): void {
   try { chmodSync(ENV_PATH, 0o600); } catch { /* no-op on Windows */ }
 }
 
+// ─── User Credentials Persistence ────────────────────────────────────────────
+
+export function getStoredCustomerUuid(): string | undefined {
+  return customerUuid;
+}
+
+export function getStoredEmail(): string | undefined {
+  return storedEmail;
+}
+
+const CREDENTIALS_PATH = join(getConfigDir(), "credentials.json");
+
+export function saveUserCredentials(email: string, password: string): void {
+  mkdirSync(dirname(CREDENTIALS_PATH), { recursive: true });
+  writeFileSync(CREDENTIALS_PATH, JSON.stringify({ email, password }), "utf8");
+  try { chmodSync(CREDENTIALS_PATH, 0o600); } catch { /* no-op on Windows */ }
+}
+
+export function loadUserCredentials(): { email: string; password: string } | null {
+  if (!existsSync(CREDENTIALS_PATH)) return null;
+  try {
+    const data = JSON.parse(readFileSync(CREDENTIALS_PATH, "utf8")) as { email?: string; password?: string };
+    if (typeof data.email === "string" && typeof data.password === "string") {
+      return { email: data.email, password: data.password };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── JWT Helpers ─────────────────────────────────────────────────────────────
 
-function base64UrlDecode(str: string): string {
+export function base64UrlDecode(str: string): string {
   // Convert base64url to base64
   let base64 = str.replace(/-/g, "+").replace(/_/g, "/");
   const pad = base64.length % 4;

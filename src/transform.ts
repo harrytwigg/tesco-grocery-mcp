@@ -1,7 +1,9 @@
+import { z } from "zod";
 import type {
   Product,
   Promotion,
   Reviews,
+  SearchProduct,
   BasketItem,
   Basket,
   DeliverySlot,
@@ -30,6 +32,95 @@ function safeNum(val: unknown): number {
 
 function safeStr(val: unknown): string {
   return typeof val === "string" ? val : "";
+}
+
+// ─── Search Product Zod Schema ───────────────────────────────────────────────
+
+const PromotionSchema = z.object({
+  description: z.string(),
+  clubcardOnly: z.boolean(),
+  discountedPrice: z.number().nullable(),
+});
+
+export const SearchProductSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  brand: z.string(),
+  price: z.number(),
+  unitPrice: z.number(),
+  unitOfMeasure: z.string(),
+  isInFavourites: z.boolean(),
+  promotion: PromotionSchema.nullable(),
+});
+
+// ─── Unit Normalisation ──────────────────────────────────────────────────────
+
+/** Normalise unit of measure to kg (weight) or L (volume) where possible. */
+function normaliseUnit(unitPrice: number, uom: string): { unitPrice: number; unitOfMeasure: string } {
+  const lower = uom.toLowerCase().replace(/\s+/g, " ").trim();
+
+  // Weight → kg
+  if (lower === "kg dr.wt" || lower === "kg dr. wt") {
+    return { unitPrice, unitOfMeasure: "kg" };
+  }
+  if (lower === "kg") {
+    return { unitPrice, unitOfMeasure: "kg" };
+  }
+  if (lower === "g") {
+    return { unitPrice: +(unitPrice * 1000).toFixed(2), unitOfMeasure: "kg" };
+  }
+  if (lower === "100g") {
+    return { unitPrice: +(unitPrice * 10).toFixed(2), unitOfMeasure: "kg" };
+  }
+
+  // Volume → L
+  if (lower === "l" || lower === "ltr" || lower === "litre") {
+    return { unitPrice, unitOfMeasure: "L" };
+  }
+  if (lower === "ml") {
+    return { unitPrice: +(unitPrice * 1000).toFixed(2), unitOfMeasure: "L" };
+  }
+  if (lower === "100ml") {
+    return { unitPrice: +(unitPrice * 10).toFixed(2), unitOfMeasure: "L" };
+  }
+
+  return { unitPrice, unitOfMeasure: uom };
+}
+
+// ─── Search Product Refinement ───────────────────────────────────────────────
+
+/**
+ * Refine raw Product[] for the search_products tool:
+ * 1. Remove products not for sale
+ * 2. Standardise units of measure
+ * 3. Sort: favourites first, then items with promotions, then the rest
+ * 4. Strip unnecessary fields via Zod schema
+ */
+export function refineSearchProducts(products: Product[]): SearchProduct[] {
+  return products
+    .filter((p) => p.isForSale)
+    .map((p) => {
+      const { unitPrice, unitOfMeasure } = normaliseUnit(p.unitPrice, p.unitOfMeasure);
+      return SearchProductSchema.parse({
+        id: p.id,
+        title: p.title,
+        brand: p.brand,
+        price: p.price,
+        unitPrice,
+        unitOfMeasure,
+        isInFavourites: p.isInFavourites,
+        promotion: p.promotion,
+      });
+    })
+    .sort((a, b) => {
+      // Favourites first
+      if (a.isInFavourites !== b.isInFavourites) return a.isInFavourites ? -1 : 1;
+      // Then items with promotions
+      const aPromo = a.promotion !== null ? 1 : 0;
+      const bPromo = b.promotion !== null ? 1 : 0;
+      if (aPromo !== bPromo) return bPromo - aPromo;
+      return 0;
+    });
 }
 
 // ─── Product Flattening ──────────────────────────────────────────────────────

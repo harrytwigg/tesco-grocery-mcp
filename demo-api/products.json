@@ -1,0 +1,73 @@
+{
+  "results": [
+    {
+      "query": "spaghetti pasta 500g",
+      "index": 0,
+      "ok": true,
+      "productList": {
+        "totalCount": 16,
+        "page": 1,
+        "pageSize": 2,
+        "products": [
+          {
+            "id": "297844134",
+            "title": "Hearty Food Co. Spaghetti Pasta 500G",
+            "brand": "HEARTY FOOD CO.",
+            "price": 0.28,
+            "unitPrice": 0.56,
+            "unitOfMeasure": "kg",
+            "isInFavourites": false,
+            "promotion": null
+          },
+          {
+            "id": "255340327",
+            "title": "Tesco Quick Cook Spaghetti Pasta 500G",
+            "brand": "TESCO",
+            "price": 0.65,
+            "unitPrice": 1.3,
+            "unitOfMeasure": "kg",
+            "isInFavourites": false,
+            "promotion": null
+          }
+        ]
+      }
+    },
+    {
+      "query": "stir fry vegetable bag",
+      "index": 1,
+      "ok": true,
+      "productList": {
+        "totalCount": 2049,
+        "page": 1,
+        "pageSize": 2,
+        "products": [
+          {
+            "id": "256789198",
+            "title": "Tesco British Garden Peas In Water 290G",
+            "brand": "TESCO",
+            "price": 0.41,
+            "unitPrice": 2.34,
+            "unitOfMeasure": "kg",
+            "isInFavourites": false,
+            "promotion": null
+          },
+          {
+            "id": "312088361",
+            "title": "Tesco Baby Carrots In Water 300G",
+            "brand": "TESCO",
+            "price": 0.49,
+            "unitPrice": 2.65,
+            "unitOfMeasure": "kg",
+            "isInFavourites": false,
+            "promotion": null
+          }
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "succeeded": 2,
+    "failed": 0
+  }
+}

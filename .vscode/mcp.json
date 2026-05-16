@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "tesco-grocery": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/Users/harry/Documents/tesco-grocery-mcp/dist/index.js"]
+    }
+  }
+}

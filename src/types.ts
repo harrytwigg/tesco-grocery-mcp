@@ -83,6 +83,25 @@ export interface ProductList {
   products: Product[];
 }
 
+/** Refined product for search output — stripped of internal/unnecessary fields. */
+export interface SearchProduct {
+  id: string;
+  title: string;
+  brand: string;
+  price: number;
+  unitPrice: number;
+  unitOfMeasure: string;
+  isInFavourites: boolean;
+  promotion: Promotion | null;
+}
+
+export interface SearchProductList {
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  products: SearchProduct[];
+}
+
 export interface BasketItem {
   id: string;
   title: string;

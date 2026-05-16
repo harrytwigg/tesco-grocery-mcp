@@ -2,8 +2,8 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { sendOperation, sendOperations } from "../client.js";
 import { buildOperation } from "../queries.js";
-import { flattenProducts } from "../transform.js";
-import { toolErrorResponse, type ProductList } from "../types.js";
+import { flattenProducts, refineSearchProducts } from "../transform.js";
+import { toolErrorResponse, type ProductList, type SearchProductList } from "../types.js";
 
 // ─── Shared Helpers ─────────────────────────────────────────────────────────
 
@@ -92,7 +92,7 @@ export function registerSearchTools(server: McpServer): void {
           query: string;
           index: number;
           ok: boolean;
-          productList?: ProductList;
+          productList?: SearchProductList;
           error?: { code: string; message: string };
         };
 
@@ -115,9 +115,9 @@ export function registerSearchTools(server: McpServer): void {
             | Record<string, unknown>
             | undefined;
           const hits = (search.results ?? []) as Array<Record<string, unknown>>;
-          const products = flattenProducts(hits);
+          const products = refineSearchProducts(flattenProducts(hits));
 
-          const productList: ProductList = {
+          const productList: SearchProductList = {
             totalCount:
               typeof pageInformation?.totalCount === "number"
                 ? pageInformation.totalCount

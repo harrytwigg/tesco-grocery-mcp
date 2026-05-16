@@ -1,5 +1,5 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
+import { Type } from "@sinclair/typebox";
 import { sendOperation, sendOperations, requireAuth, setOrderId, extractOrderId } from "../client.js";
 import { buildOperation } from "../queries.js";
 import {
@@ -21,35 +21,23 @@ function addDays(dateStr: string, days: number): string {
   return d.toISOString().split("T")[0];
 }
 
-export function registerSlotTools(server: McpServer): void {
+export function registerSlotTools(api: OpenClawPluginApi): void {
   // ─── get_delivery_slots ──────────────────────────────────────────────────
 
-  server.tool(
-    "get_delivery_slots",
-    "View available delivery slots for a date range. Returns 1-hour time slots grouped by date, including slot IDs needed for book_delivery_slot.",
-    {
-      start: z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
-        .optional()
-        .describe("Start date (YYYY-MM-DD, e.g. '2026-04-10'). Defaults to today."),
-      end: z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
-        .optional()
-        .describe("End date (YYYY-MM-DD). Defaults to start + 7 days."),
-      showUnavailable: z
-        .boolean()
-        .default(false)
-        .optional()
-        .describe("Include unavailable slots in results"),
-    },
-    async (args) => {
+  api.registerTool({
+    name: "get_delivery_slots",
+    description: "View available delivery slots for a date range. Returns 1-hour time slots grouped by date, including slot IDs needed for book_delivery_slot.",
+    parameters: Type.Object({
+      start: Type.Optional(Type.String({ pattern: "^\\d{4}-\\d{2}-\\d{2}$", description: "Start date (YYYY-MM-DD, e.g. '2026-04-10'). Defaults to today." })),
+      end: Type.Optional(Type.String({ pattern: "^\\d{4}-\\d{2}-\\d{2}$", description: "End date (YYYY-MM-DD). Defaults to start + 7 days." })),
+      showUnavailable: Type.Optional(Type.Boolean({ default: false, description: "Include unavailable slots in results" })),
+    }),
+    async execute(_id, params) {
       try {
         requireAuth();
 
-        const start = args.start || todayISO();
-        const end = args.end || addDays(start, 7);
+        const start = params.start || todayISO();
+        const end = params.end || addDays(start, 7);
 
         const op = buildOperation(
           "DeliverySlots",
@@ -65,7 +53,7 @@ export function registerSlotTools(server: McpServer): void {
           rawSlots,
           start,
           end,
-          args.showUnavailable ?? false,
+          params.showUnavailable ?? false,
         );
 
         return {
@@ -75,15 +63,15 @@ export function registerSlotTools(server: McpServer): void {
         return toolErrorResponse(e);
       }
     },
-  );
+  });
 
   // ─── get_available_weeks ─────────────────────────────────────────────────
 
-  server.tool(
-    "get_available_weeks",
-    "View which weeks have delivery slots available. Returns week start/end dates to use as inputs to get_delivery_slots.",
-    {},
-    async () => {
+  api.registerTool({
+    name: "get_available_weeks",
+    description: "View which weeks have delivery slots available. Returns week start/end dates to use as inputs to get_delivery_slots.",
+    parameters: Type.Object({}),
+    async execute() {
       try {
         requireAuth();
 
@@ -116,15 +104,15 @@ export function registerSlotTools(server: McpServer): void {
         return toolErrorResponse(e);
       }
     },
-  );
+  });
 
   // ─── get_current_slot ────────────────────────────────────────────────────
 
-  server.tool(
-    "get_current_slot",
-    "Check if the user already has a delivery slot booked. Returns slot details (date, time, charge, expiry) or hasSlot: false.",
-    {},
-    async () => {
+  api.registerTool({
+    name: "get_current_slot",
+    description: "Check if the user already has a delivery slot booked. Returns slot details (date, time, charge, expiry) or hasSlot: false.",
+    parameters: Type.Object({}),
+    async execute() {
       try {
         requireAuth();
 
@@ -144,30 +132,29 @@ export function registerSlotTools(server: McpServer): void {
         return toolErrorResponse(e);
       }
     },
-  );
+  });
 
   // ─── book_delivery_slot ──────────────────────────────────────────────────
 
-  server.tool(
-    "book_delivery_slot",
-    "Book or unbook a delivery slot. Requires a slotId from get_delivery_slots. IMPORTANT: Always confirm with the user before booking.",
-    {
-      slotId: z.string().describe("Slot ID from get_delivery_slots results"),
-      action: z
-        .enum(["BOOK", "UNBOOK"])
-        .default("BOOK")
-        .optional()
-        .describe("BOOK to reserve a slot, UNBOOK to release it"),
-    },
-    async (args) => {
+  api.registerTool({
+    name: "book_delivery_slot",
+    description: "Book or unbook a delivery slot. Requires a slotId from get_delivery_slots. IMPORTANT: Always confirm with the user before booking.",
+    parameters: Type.Object({
+      slotId: Type.String({ description: "Slot ID from get_delivery_slots results" }),
+      action: Type.Optional(Type.Union(
+        [Type.Literal("BOOK"), Type.Literal("UNBOOK")],
+        { default: "BOOK", description: "BOOK to reserve a slot, UNBOOK to release it" },
+      )),
+    }),
+    async execute(_id, params) {
       try {
         requireAuth();
 
-        const action = args.action ?? "BOOK";
+        const action = params.action ?? "BOOK";
 
         const fulfilmentOp = buildOperation(
           "Fulfilment",
-          { slotId: args.slotId, action },
+          { slotId: params.slotId, action },
           "mfe-slots",
         );
         const basketOp = buildOperation("GetBasket", {}, "mfe-basket");
@@ -194,5 +181,5 @@ export function registerSlotTools(server: McpServer): void {
         return toolErrorResponse(e);
       }
     },
-  );
+  });
 }

@@ -1,0 +1,37 @@
+{
+  "id": "tesco-grocery",
+  "name": "Tesco Grocery",
+  "description": "Search products, manage basket, and book delivery slots on Tesco",
+  "version": "1.0.0",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "contracts": {
+    "tools": [
+      "set_auth_token",
+      "set_tesco_credentials",
+      "auto_login",
+      "search_products",
+      "get_product_details",
+      "get_offers",
+      "get_substitutions",
+      "get_basket",
+      "add_to_basket",
+      "remove_from_basket",
+      "browse_categories",
+      "get_favourites",
+      "get_order_history",
+      "get_delivery_slots",
+      "get_available_weeks",
+      "get_current_slot",
+      "book_delivery_slot"
+    ]
+  },
+  "skills": ["skills/tesco-grocery-shopping"],
+  "activation": {
+    "onStartup": false,
+    "onCapabilities": ["tool"]
+  }
+}

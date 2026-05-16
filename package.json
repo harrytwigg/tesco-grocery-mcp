@@ -1,7 +1,7 @@
 {
   "name": "tesco-grocery-mcp",
   "version": "1.0.0",
-  "description": "MCP server for Tesco grocery shopping — search products, manage your basket, and book delivery slots",
+  "description": "OpenClaw plugin for Tesco grocery shopping — search products, manage your basket, and book delivery slots",
   "license": "MIT",
   "author": "Gavin Attard",
   "repository": {
@@ -13,13 +13,12 @@
     "url": "https://github.com/GavinAttard/tesco-grocery-mcp/issues"
   },
   "keywords": [
-    "mcp",
+    "openclaw",
     "tesco",
     "grocery",
     "shopping",
-    "model-context-protocol",
-    "ai",
-    "claude"
+    "plugin",
+    "ai"
   ],
   "files": [
     "dist/src/",
@@ -28,8 +27,13 @@
     ".env.example"
   ],
   "type": "module",
-  "bin": {
-    "tesco-grocery": "./dist/src/index.js"
+  "openclaw": {
+    "extensions": [
+      "./src/index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.3.24-beta.2"
+    }
   },
   "engines": {
     "node": ">=18.0.0"
@@ -40,7 +44,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@sinclair/typebox": "^0.34.49",
     "playwright": "^1.52.0",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",

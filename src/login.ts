@@ -158,7 +158,9 @@ export async function runLogin(options?: { headless?: boolean }): Promise<LoginR
   const userDataDir = join(homedir(), ".config", "tesco-grocery-mcp", "chrome-profile");
 
   const context = await chromium.launchPersistentContext(userDataDir, {
-    channel: "chrome",
+    ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+      ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
+      : { channel: "chrome" }),
     headless: options?.headless ?? true,
     args: [
       "--disable-blink-features=AutomationControlled",

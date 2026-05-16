@@ -46,7 +46,7 @@ export interface GraphQLResponse {
   status?: number;
 }
 
-// ─── Flattened Output Types (what MCP tools return to Claude) ────────────────
+// ─── Flattened Output Types (what tools return to the agent) ─────────────────
 
 export interface Promotion {
   description: string;

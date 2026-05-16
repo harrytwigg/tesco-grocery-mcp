@@ -1,18 +1,18 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
+import { Type } from "@sinclair/typebox";
 import { sendOperation, sendOperations, requireAuth, getOrderId, setOrderId, extractOrderId } from "../client.js";
 import { buildOperation } from "../queries.js";
 import { flattenBasket, flattenBasketUpdate } from "../transform.js";
 import { TescoError, toolErrorResponse } from "../types.js";
 
-export function registerBasketTools(server: McpServer): void {
+export function registerBasketTools(api: OpenClawPluginApi): void {
   // ─── get_basket ─────────────────────────────────────────────────────────────
 
-  server.tool(
-    "get_basket",
-    "Get the current basket contents.",
-    {},
-    async () => {
+  api.registerTool({
+    name: "get_basket",
+    description: "Get the current basket contents.",
+    parameters: Type.Object({}),
+    async execute() {
       try {
         requireAuth();
 
@@ -32,25 +32,23 @@ export function registerBasketTools(server: McpServer): void {
         return toolErrorResponse(e);
       }
     },
-  );
+  });
 
   // ─── add_to_basket ──────────────────────────────────────────────────────────
 
-  server.tool(
-    "add_to_basket",
-    "Add one or more products to the basket, or change their quantity.",
-    {
-      items: z
-        .array(
-          z.object({
-            id: z.string().describe("Product ID"),
-            quantity: z.number().int().min(0).describe("Desired quantity (0 to remove)"),
-          }),
-        )
-        .min(1)
-        .describe("Products to add/update"),
-    },
-    async (args) => {
+  api.registerTool({
+    name: "add_to_basket",
+    description: "Add one or more products to the basket, or change their quantity.",
+    parameters: Type.Object({
+      items: Type.Array(
+        Type.Object({
+          id: Type.String({ description: "Product ID" }),
+          quantity: Type.Integer({ minimum: 0, description: "Desired quantity (0 to remove)" }),
+        }),
+        { minItems: 1, description: "Products to add/update" },
+      ),
+    }),
+    async execute(_id, params) {
       try {
         requireAuth();
 
@@ -72,7 +70,7 @@ export function registerBasketTools(server: McpServer): void {
           "UpdateBasket",
           {
             orderId,
-            items: args.items.map((item) => ({
+            items: params.items.map((item: { id: string; quantity: number }) => ({
               adjustment: false,
               id: item.id,
               newValue: item.quantity,
@@ -99,17 +97,17 @@ export function registerBasketTools(server: McpServer): void {
         return toolErrorResponse(e);
       }
     },
-  );
+  });
 
   // ─── remove_from_basket ─────────────────────────────────────────────────────
 
-  server.tool(
-    "remove_from_basket",
-    "Remove one or more products from the basket.",
-    {
-      ids: z.array(z.string()).min(1).describe("Product IDs to remove"),
-    },
-    async (args) => {
+  api.registerTool({
+    name: "remove_from_basket",
+    description: "Remove one or more products from the basket.",
+    parameters: Type.Object({
+      ids: Type.Array(Type.String(), { minItems: 1, description: "Product IDs to remove" }),
+    }),
+    async execute(_id, params) {
       try {
         requireAuth();
 
@@ -131,7 +129,7 @@ export function registerBasketTools(server: McpServer): void {
           "UpdateBasket",
           {
             orderId,
-            items: args.ids.map((id) => ({
+            items: params.ids.map((id: string) => ({
               adjustment: false,
               id,
               newValue: 0,
@@ -158,5 +156,5 @@ export function registerBasketTools(server: McpServer): void {
         return toolErrorResponse(e);
       }
     },
-  );
+  });
 }

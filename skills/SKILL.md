@@ -24,7 +24,6 @@ Every grocery shopping task follows this dependency graph. Phases are sequential
 1. view SKILL.md (this file)
 2. `auto_login` — **must be called at the start of every session** to ensure a valid access token before any authenticated tool is used. If the persistent Chrome session is still valid for the correct user it will return instantly; otherwise it will perform a fresh headless login automatically.
 3. bash: cat preferred_items.md (check if exists)
-4. tool_search("tesco grocery...")
 
 ### Phase 1 — Context gathering
 

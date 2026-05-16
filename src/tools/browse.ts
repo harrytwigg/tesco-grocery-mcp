@@ -1,29 +1,22 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
+import { Type } from "@sinclair/typebox";
 import { sendOperation, requireAuth } from "../client.js";
 import { buildOperation } from "../queries.js";
 import { flattenCategories, flattenOrder, flattenProducts } from "../transform.js";
 import { cache, TAXONOMY_TTL, FAVOURITES_TTL, ORDERS_TTL } from "../cache.js";
 import { toolErrorResponse, type Category, type Order, type ProductList } from "../types.js";
 
-export function registerBrowseTools(server: McpServer): void {
+export function registerBrowseTools(api: OpenClawPluginApi): void {
   // ─── browse_categories ──────────────────────────────────────────────────────
 
-  server.tool(
-    "browse_categories",
-    "Get the department/aisle/shelf taxonomy tree.",
-    {
-      department: z.string().optional().describe("Filter to a specific department name"),
-      depth: z
-        .number()
-        .int()
-        .min(1)
-        .max(3)
-        .default(2)
-        .optional()
-        .describe("Tree depth: 1=departments, 2=+aisles, 3=+shelves"),
-    },
-    async (args) => {
+  api.registerTool({
+    name: "browse_categories",
+    description: "Get the department/aisle/shelf taxonomy tree.",
+    parameters: Type.Object({
+      department: Type.Optional(Type.String({ description: "Filter to a specific department name" })),
+      depth: Type.Optional(Type.Integer({ minimum: 1, maximum: 3, default: 2, description: "Tree depth: 1=departments, 2=+aisles, 3=+shelves" })),
+    }),
+    async execute(_id, params) {
       try {
         let rawCategories = cache.get<Array<Record<string, unknown>>>("taxonomy");
 
@@ -44,8 +37,8 @@ export function registerBrowseTools(server: McpServer): void {
         }
 
         const categories = flattenCategories(rawCategories, {
-          department: args.department,
-          depth: args.depth,
+          department: params.department,
+          depth: params.depth,
         });
 
         return {
@@ -55,24 +48,17 @@ export function registerBrowseTools(server: McpServer): void {
         return toolErrorResponse(e);
       }
     },
-  );
+  });
 
   // ─── get_favourites ─────────────────────────────────────────────────────────
 
-  server.tool(
-    "get_favourites",
-    "Get the user's favourite products.",
-    {
-      count: z
-        .number()
-        .int()
-        .min(1)
-        .max(48)
-        .default(24)
-        .optional()
-        .describe("Number of favourites to return"),
-    },
-    async (args) => {
+  api.registerTool({
+    name: "get_favourites",
+    description: "Get the user's favourite products.",
+    parameters: Type.Object({
+      count: Type.Optional(Type.Integer({ minimum: 1, maximum: 48, default: 24, description: "Number of favourites to return" })),
+    }),
+    async execute(_id, params) {
       try {
         requireAuth();
 
@@ -86,7 +72,7 @@ export function registerBrowseTools(server: McpServer): void {
           cache.set("favourites", products, FAVOURITES_TTL);
         }
 
-        const count = args.count ?? 24;
+        const count = params.count ?? 24;
         const slicedProducts = products.slice(0, count);
 
         const result: ProductList = {
@@ -103,15 +89,15 @@ export function registerBrowseTools(server: McpServer): void {
         return toolErrorResponse(e);
       }
     },
-  );
+  });
 
   // ─── get_order_history ──────────────────────────────────────────────────────
 
-  server.tool(
-    "get_order_history",
-    "Get previous orders.",
-    {},
-    async () => {
+  api.registerTool({
+    name: "get_order_history",
+    description: "Get previous orders.",
+    parameters: Type.Object({}),
+    async execute() {
       try {
         requireAuth();
 
@@ -132,5 +118,5 @@ export function registerBrowseTools(server: McpServer): void {
         return toolErrorResponse(e);
       }
     },
-  );
+  });
 }

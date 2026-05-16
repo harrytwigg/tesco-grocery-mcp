@@ -69,7 +69,7 @@ export function loadCredentialsFromEnv(): void {
     } else {
       console.error(`[tesco] Bearer token valid until ${expiry.expiresAt}`);
     }
-  } else {
+  } {
     console.error("[tesco] No bearer token in .env — authenticated tools will return TOKEN_EXPIRED");
   }
 }
@@ -103,11 +103,15 @@ export function setCredentials(token: string, uuid: string, email?: string): voi
 // ─── User Credentials Persistence ────────────────────────────────────────────
 
 export function getStoredCustomerUuid(): string | undefined {
-  return customerUuid;
+  if (!existsSync(ENV_PATH)) return customerUuid;
+  const env = parseEnv(readFileSync(ENV_PATH, "utf8"));
+  return env.TESCO_CUSTOMER_UUID || customerUuid;
 }
 
 export function getStoredEmail(): string | undefined {
-  return storedEmail;
+  if (!existsSync(ENV_PATH)) return storedEmail;
+  const env = parseEnv(readFileSync(ENV_PATH, "utf8"));
+  return env.TESCO_EMAIL || storedEmail;
 }
 
 const CREDENTIALS_PATH = join(getConfigDir(), "credentials.json");

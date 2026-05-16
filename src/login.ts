@@ -176,37 +176,30 @@ export async function runLogin(options?: { headless?: boolean }): Promise<LoginR
   try {
     const page = context.pages()[0] || await context.newPage();
 
-    // Step 1: navigate to login page
-    console.error("[auto_login] Navigating to login page…");
-    await page.goto("https://www.tesco.com/account/auth/en-GB/login", { waitUntil: "domcontentloaded" });
+    // Step 1: navigate to homepage first to check for existing session
+    // (going directly to the sign-in page causes Tesco to sign us out)
+    console.error("[auto_login] Navigating to homepage to check session…");
+    await page.goto("https://www.tesco.com/", { waitUntil: "domcontentloaded" });
     console.error(`[auto_login] Page loaded — URL: ${page.url()}`);
 
     // Let Akamai telemetry script load and collect initial sensor data
     await randomDelay(2000, 4000);
     await idleMouseMovement(page);
 
-    // Check if we were redirected to the homepage (already logged in via persistent profile)
-    const currentUrl = page.url();
-    if (!currentUrl.includes("/account/auth/")) {
-      console.error("[auto_login] Redirected away from login — checking existing session…");
+    // Check if there's already a valid session token in cookies
+    const existingResult = await extractAndSaveToken(context);
 
-      // Try to extract the existing OAuth cookie
-      const existingResult = await extractAndSaveToken(context);
+    if (existingResult.success) {
+      // Compare the email stored in .env against the one we're trying to log in as
+      const previousEmail = getStoredEmail();
+      const targetEmail = credentials.email;
 
-      if (existingResult.success) {
-        // Compare the email stored in .env against the one we're trying to log in as
-        const previousEmail = getStoredEmail();
-        const targetEmail = credentials.email;
-
-        if (previousEmail && previousEmail.toLowerCase() === targetEmail.toLowerCase()) {
-          console.error(`[auto_login] Existing session valid for ${previousEmail} — reusing token`);
-          return existingResult;
-        }
-
-        console.error(`[auto_login] Email mismatch — stored: ${previousEmail ?? "none"}, target: ${targetEmail}. Signing out…`);
-      } else {
-        console.error(`[auto_login] Existing session invalid (${existingResult.error}). Signing out…`);
+      if (previousEmail && previousEmail.toLowerCase() === targetEmail.toLowerCase()) {
+        console.error(`[auto_login] Existing session valid for ${previousEmail} — reusing token`);
+        return existingResult;
       }
+
+      console.error(`[auto_login] Email mismatch — stored: ${previousEmail ?? "none"}, target: ${targetEmail}. Signing out…`);
 
       // Sign out using the known sign-out button id
       try {
@@ -219,12 +212,15 @@ export async function runLogin(options?: { headless?: boolean }): Promise<LoginR
       } catch {
         console.error("[auto_login] Could not find #app-bar-sign-out, navigating to login page directly…");
       }
-
-      // Navigate back to login page
-      await page.goto("https://www.tesco.com/account/auth/en-GB/login", { waitUntil: "domcontentloaded" });
-      await randomDelay(2000, 4000);
-      await idleMouseMovement(page);
+    } else {
+      console.error(`[auto_login] No valid session found (${existingResult.error}). Proceeding to login…`);
     }
+
+    // Navigate to login page
+    console.error("[auto_login] Navigating to login page…");
+    await page.goto("https://www.tesco.com/account/auth/en-GB/login", { waitUntil: "domcontentloaded" });
+    await randomDelay(2000, 4000);
+    await idleMouseMovement(page);
 
     // Accept cookie consent banner (non-critical)
     try {
